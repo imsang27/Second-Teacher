@@ -222,16 +222,24 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
-        question.options.forEach((option, index) => {
+        // 섞인 보기 순서로 표시
+        question.options.forEach((option, shuffledIndex) => {
             const optionItem = document.createElement('div');
             optionItem.className = 'option-item';
-            if (userAnswers[currentQuestionIndex] === index) {
-                optionItem.classList.add('selected');
+            
+            // 사용자가 선택한 답변을 원본 인덱스로 변환하여 비교
+            const savedAnswer = userAnswers[currentQuestionIndex];
+            if (savedAnswer !== null && savedAnswer !== undefined) {
+                // savedAnswer는 원본 인덱스이므로, 섞인 인덱스로 변환
+                const shuffledAnswerIndex = question.shuffledOrder ? question.shuffledOrder.indexOf(savedAnswer) : savedAnswer;
+                if (shuffledAnswerIndex === shuffledIndex) {
+                    optionItem.classList.add('selected');
+                }
             }
             
             optionItem.innerHTML = `
-                <input type="radio" id="option_${index}" name="answer" value="${index}" ${userAnswers[currentQuestionIndex] === index ? 'checked' : ''}>
-                <label for="option_${index}">${option}</label>
+                <input type="radio" id="option_${shuffledIndex}" name="answer" value="${shuffledIndex}" ${(savedAnswer !== null && savedAnswer !== undefined && question.shuffledOrder && question.shuffledOrder.indexOf(savedAnswer) === shuffledIndex) ? 'checked' : ''}>
+                <label for="option_${shuffledIndex}">${option}</label>
             `;
             
             optionItem.addEventListener('click', function() {
@@ -244,13 +252,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('selected');
                 this.querySelector('input[type="radio"]').checked = true;
                 
-                // 답변 저장
-                userAnswers[currentQuestionIndex] = index;
+                // 섞인 인덱스를 원본 인덱스로 변환하여 저장
+                const originalIndex = question.shuffledToOriginal ? question.shuffledToOriginal[shuffledIndex] : shuffledIndex;
+                userAnswers[currentQuestionIndex] = originalIndex;
+                console.log(`선택한 보기: 섞인 인덱스 ${shuffledIndex} → 원본 인덱스 ${originalIndex}`);
                 updateNavigation();
             });
             
             answerContainer.appendChild(optionItem);
         });
+    }
+    
+    // 배열을 랜덤하게 섞는 함수 (Fisher-Yates 알고리즘)
+    function shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
+        return array;
     }
     
     // 현재 문제 답변 저장
