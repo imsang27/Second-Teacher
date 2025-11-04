@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, render_template, session
 import os
 from services.audio_service import AudioService
 from services.question_generator import generate_question
-from services.firebase_service import save_question, get_materials, get_material_content
+from services.firebase_service import save_question, get_materials, get_material_content, get_questions
 from werkzeug.utils import secure_filename
 from utils.file_utils import is_allowed_audio_file, validate_file_request, ALLOWED_AUDIO_EXTENSIONS
 
@@ -15,6 +15,36 @@ def stt_generate_page():
     문제 생성 페이지를 렌더링
     """
     return render_template('stt_generate.html')
+
+@stt_gen_bp.route('/questions', methods=['GET'])
+def questions_list():
+    """
+    저장된 문제 목록 페이지를 렌더링
+    """
+    return render_template('questions_list.html')
+
+@stt_gen_bp.route('/api/questions', methods=['GET'])
+def get_questions_list():
+    """
+    저장된 문제 목록을 조회하는 API
+    """
+    try:
+        user_id = session.get('user', {}).get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "로그인이 필요합니다."}), 401
+        
+        questions = get_questions()
+        
+        return jsonify({
+            "success": True,
+            "questions": questions
+        })
+    except Exception as e:
+        print(f"Error getting questions list: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @stt_gen_bp.route('/api/materials', methods=['GET'])
 def get_material_list():

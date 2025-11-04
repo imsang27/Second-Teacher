@@ -125,4 +125,47 @@ def save_question(lecture_id, question):
     if not user_id:
         return
     
-    db.collection('questions').document('UID').collection(user_id).add(question)
+    # 생성 시간 추가
+    from firebase_admin import firestore
+    question_with_timestamp = {
+        **question,
+        'created_at': firestore.SERVER_TIMESTAMP
+    }
+    
+    db.collection('questions').document('UID').collection(user_id).add(question_with_timestamp)
+
+def get_questions():
+    """
+    사용자의 저장된 모든 문제 목록을 조회
+    """
+    questions = []
+    user_id = session.get('user', {}).get('uid')
+    
+    if not user_id:
+        return questions
+    
+    try:
+        questions_ref = db.collection('questions').document('UID').collection(user_id).stream()
+        for doc in questions_ref:
+            data = doc.to_dict()
+            question_data = {
+                'id': doc.id,
+                'question': data.get('question', '문제 내용 없음'),
+                'type': data.get('type', 'multiple'),
+                'answer': data.get('answer', ''),
+                'created_at': data.get('created_at', None)
+            }
+            
+            # 객관식 문제인 경우 보기 추가
+            if 'options' in data:
+                question_data['options'] = data['options']
+            
+            questions.append(question_data)
+        
+        # 생성일시 기준으로 정렬 (최신순)
+        questions.sort(key=lambda x: x.get('created_at') or '', reverse=True)
+        
+    except Exception as e:
+        print(f"Error getting questions: {str(e)}")
+    
+    return questions

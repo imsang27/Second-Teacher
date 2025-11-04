@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>저장된 문제 목록</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='main_styles.css') }}">
+    <style>
+        .questions-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+        }
+        .page-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #333;
+        }
+        .btn-primary {
+            padding: 0.75rem 1.5rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .questions-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 1.5rem;
+        }
+        .question-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .question-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .question-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 1rem;
+        }
+        .question-type {
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: bold;
+        }
+        .question-type.multiple {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .question-type.short {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .question-text {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            color: #333;
+            line-height: 1.5;
+        }
+        .question-options {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+        .question-options li {
+            margin: 0.5rem 0;
+            color: #666;
+        }
+        .question-answer {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #f5f5f5;
+            border-radius: 4px;
+            border-left: 4px solid #4caf50;
+        }
+        .answer-label {
+            font-weight: bold;
+            color: #4caf50;
+            margin-bottom: 0.5rem;
+        }
+        .answer-content {
+            color: #333;
+        }
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: #666;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 1rem;
+        }
+        .question-actions {
+            margin-top: 1rem;
+            display: flex;
+            gap: 0.5rem;
+        }
+        .btn-sm {
+            padding: 0.5rem 1rem;
+            font-size: 0.875rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-delete {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-delete:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <nav class="top-nav">
+        <a href="/dashboard" class="logo">Second-Teacher</a>
+        <div>
+            <a href="{{ url_for('profile.profile') }}" style="text-decoration: none; color: #333; margin-right: 1rem;">내 프로필</a>
+            <a href="{{ url_for('public.logout') }}" style="text-decoration: none; color: #333;">로그아웃</a>
+        </div>
+    </nav>
+
+    <main class="questions-container">
+        <div class="page-header">
+            <h1 class="page-title">저장된 문제 목록</h1>
+            <a href="{{ url_for('stt_gen.stt_generate_page') }}" class="btn-primary">새 문제 생성</a>
+        </div>
+
+        <div id="questionsContainer">
+            <div class="loading">문제 목록을 불러오는 중...</div>
+        </div>
+    </main>
+
+    <script>
+        // 문제 목록 로드
+        async function loadQuestions() {
+            const container = document.getElementById('questionsContainer');
+            
+            try {
+                const response = await fetch('/api/questions');
+                const data = await response.json();
+                
+                if (data.success) {
+                    const questions = data.questions;
+                    
+                    if (questions.length === 0) {
+                        container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📝</div>
+                                <h2>저장된 문제가 없습니다</h2>
+                                <p>문제 생성기를 사용하여 새로운 문제를 만들어보세요!</p>
+                                <a href="/stt-generate" class="btn-primary" style="margin-top: 1rem;">문제 생성하기</a>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    container.innerHTML = `
+                        <div class="questions-grid">
+                            ${questions.map(q => renderQuestion(q)).join('')}
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <p>문제를 불러오는데 실패했습니다: ${data.error}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <p>문제를 불러오는 중 오류가 발생했습니다.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        // 문제 카드 렌더링
+        function renderQuestion(question) {
+            const typeLabel = question.type === 'multiple' ? '객관식' : '주관식';
+            const typeClass = question.type === 'multiple' ? 'multiple' : 'short';
+            
+            let optionsHtml = '';
+            if (question.type === 'multiple' && question.options) {
+                optionsHtml = `
+                    <div class="question-options">
+                        <strong>보기:</strong>
+                        <ol>
+                            ${question.options.map((opt, idx) => 
+                                `<li>${opt}${idx === question.answer ? ' ✓' : ''}</li>`
+                            ).join('')}
+                        </ol>
+                    </div>
+                `;
+            }
+            
+            let answerHtml = '';
+            if (question.type === 'multiple') {
+                answerHtml = `
+                    <div class="question-answer">
+                        <div class="answer-label">정답:</div>
+                        <div class="answer-content">${question.options[question.answer] || `보기 ${question.answer + 1}`}</div>
+                    </div>
+                `;
+            } else {
+                answerHtml = `
+                    <div class="question-answer">
+                        <div class="answer-label">정답:</div>
+                        <div class="answer-content">${question.answer}</div>
+                    </div>
+                `;
+            }
+            
+            return `
+                <div class="question-card">
+                    <div class="question-header">
+                        <span class="question-type ${typeClass}">${typeLabel}</span>
+                    </div>
+                    <div class="question-text">${question.question}</div>
+                    ${optionsHtml}
+                    ${answerHtml}
+                </div>
+            `;
+        }
+        
+        // 페이지 로드 시 문제 목록 로드
+        loadQuestions();
+    </script>
+</body>
+</html>
