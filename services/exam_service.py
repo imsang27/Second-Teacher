@@ -74,25 +74,42 @@ class ExamService:
                 })
                 continue
             
-             # 명확한 채점 결과 생성
+            # 명확한 채점 결과 생성
             if question['type'] == 'short':
-                     is_correct = self._grade_short_answer(answer, question['answer'])
+                is_correct = self._grade_short_answer(answer, question['answer'])
             elif question['type'] == 'multiple':
             # 정수 변환을 통한 일관된 비교
-                 try:
-                     user_int = int(answer) if answer is not None else None
-                     correct_int = int(question['answer']) if question['answer'] is not None else None
-                     is_correct = user_int == correct_int
-                 except:
-                     is_correct = answer == question['answer']
+                try:
+                    user_int = int(answer) if answer is not None else None
+                    correct_int = int(question['answer']) if question['answer'] is not None else None
+                    
+                    # 디버깅 로그 추가
+                    print(f"DEBUG: 채점 - 문제 ID: {question_id}, 사용자 답안: {user_int}, 정답 인덱스: {correct_int}")
+                    print(f"DEBUG: 문제 내용: {question.get('question', question.get('text', ''))[:100]}")
+                    if 'options' in question:
+                        print(f"DEBUG: 보기 옵션: {question['options']}")
+                    
+                    is_correct = user_int == correct_int
+                except Exception as e:
+                    print(f"DEBUG: 채점 중 오류: {str(e)}, answer: {answer}, question['answer']: {question.get('answer')}")
+                    is_correct = answer == question['answer']
             else:
                 is_correct = False
             
-            results.append({
-                 'question_id': question_id,
-                 'is_correct': bool(is_correct),
-                 'correct_answer': question['answer']
-            })
+            # 결과에 문제 정보도 포함 (디버깅 및 결과 표시용)
+            result_data = {
+                'question_id': question_id,
+                'is_correct': bool(is_correct),
+                'correct_answer': question['answer'],
+                'question_text': question.get('question', question.get('text', ''))[:100]  # 문제 내용 일부
+            }
+            
+            # 객관식 문제인 경우 보기 정보도 포함
+            if question['type'] == 'multiple' and 'options' in question:
+                result_data['correct_answer_option'] = question['options'][question['answer']] if question['answer'] < len(question['options']) else None
+                result_data['options'] = question['options']
+            
+            results.append(result_data)
         
         return results
     
@@ -120,11 +137,11 @@ class ExamService:
         선택형 문제 채점 로직
         """
         try:
-             user_int = int(user_answer) if user_answer is not None else None
-             correct_int = int(correct_answer) if correct_answer is not None else None
-             return user_int == correct_int
+            user_int = int(user_answer) if user_answer is not None else None
+            correct_int = int(correct_answer) if correct_answer is not None else None
+            return user_int == correct_int
         except:
-             return user_answer == correct_answer
+            return user_answer == correct_answer
     
     def _create_blank_question(self, question_type, index):
         """

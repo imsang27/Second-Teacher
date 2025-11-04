@@ -27,6 +27,21 @@ document.addEventListener('DOMContentLoaded', function() {
         const { questions, userAnswers, results } = examResults;
         const totalQuestions = questions.length;
         
+        // 디버깅: 저장된 답안 확인
+        console.log('=== 시험 결과 디버깅 ===');
+        console.log('저장된 답안:', userAnswers);
+        questions.forEach((q, idx) => {
+            if (q.type === 'multiple') {
+                console.log(`문제 ${idx + 1} (ID: ${q.id}):`);
+                console.log(`  - 저장된 답안 인덱스: ${userAnswers[idx]}`);
+                console.log(`  - 원본 보기:`, q.originalOptions || q.options);
+                console.log(`  - 원본 정답 인덱스: ${q.originalAnswer !== undefined ? q.originalAnswer : q.answer}`);
+                if (q.originalOptions && userAnswers[idx] !== undefined) {
+                    console.log(`  - 제출한 답안 텍스트: ${q.originalOptions[userAnswers[idx]]}`);
+                }
+            }
+        });
+        
         // 결과 배열에서 정답 수 계산 - is_correct 값을 직접 사용
         const correctAnswers = results.filter(result => result.is_correct === true).length;
         
@@ -107,12 +122,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 const userAnswer = userAnswers[index];
                 let answerText = '(답변 없음)';
                 
+                // 원본 보기 사용 (섞인 보기 대신)
+                const originalOptions = question.originalOptions || question.options;
+                
+                // 디버깅 로그
+                console.log(`문제 ${index + 1} - 제출한 답안 표시:`, {
+                    userAnswerIndex: userAnswer,
+                    originalOptions: originalOptions,
+                    hasOriginalOptions: !!question.originalOptions
+                });
+                
                 if (userAnswer !== null && userAnswer !== undefined) {
-                    // 선택한 답변이 있는 경우
-                    if (question.options && question.options[userAnswer]) {
-                        answerText = question.options[userAnswer];
+                    // 선택한 답변이 있는 경우 (userAnswer는 원본 인덱스)
+                    if (originalOptions && originalOptions.length > userAnswer && originalOptions[userAnswer] !== undefined) {
+                        answerText = originalOptions[userAnswer];
+                        console.log(`문제 ${index + 1} - 표시할 답안 텍스트: ${answerText}`);
                     } else {
-                        answerText = `선택지 ${userAnswer + 1}`;
+                        answerText = `선택지 ${userAnswer + 1} (인덱스: ${userAnswer})`;
+                        console.warn(`문제 ${index + 1} - 원본 보기에서 답안을 찾을 수 없음. 인덱스: ${userAnswer}, 원본 보기 개수: ${originalOptions ? originalOptions.length : 0}`);
                     }
                 }
                 
@@ -136,11 +163,15 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (question.type === 'multiple') {
                 let correctAnswerText = '(정답 정보 없음)';
                 
-                if (question.answer !== undefined && question.answer !== null && 
-                    question.options && question.options[question.answer]) {
-                    correctAnswerText = question.options[question.answer];
-                } else if (question.answer !== undefined && question.answer !== null) {
-                    correctAnswerText = `선택지 ${parseInt(question.answer) + 1}`;
+                // 원본 보기와 원본 정답 인덱스 사용
+                const originalOptions = question.originalOptions || question.options;
+                const originalAnswer = question.originalAnswer !== undefined ? question.originalAnswer : question.answer;
+                
+                if (originalAnswer !== undefined && originalAnswer !== null && 
+                    originalOptions && originalOptions[originalAnswer] !== undefined) {
+                    correctAnswerText = originalOptions[originalAnswer];
+                } else if (originalAnswer !== undefined && originalAnswer !== null) {
+                    correctAnswerText = `선택지 ${parseInt(originalAnswer) + 1}`;
                 }
                 
                 correctAnswerElem.innerHTML = `

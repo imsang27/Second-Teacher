@@ -229,16 +229,24 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // 사용자가 선택한 답변을 원본 인덱스로 변환하여 비교
             const savedAnswer = userAnswers[currentQuestionIndex];
+            let isChecked = false;
+            
             if (savedAnswer !== null && savedAnswer !== undefined) {
                 // savedAnswer는 원본 인덱스이므로, 섞인 인덱스로 변환
-                const shuffledAnswerIndex = question.shuffledOrder ? question.shuffledOrder.indexOf(savedAnswer) : savedAnswer;
-                if (shuffledAnswerIndex === shuffledIndex) {
+                // shuffledToOriginal의 역매핑: 원본 인덱스 → 섞인 인덱스 찾기
+                const shuffledAnswerIndex = question.shuffledToOriginal ? 
+                    Object.keys(question.shuffledToOriginal).find(key => 
+                        question.shuffledToOriginal[key] === savedAnswer
+                    ) : savedAnswer;
+                
+                if (shuffledAnswerIndex !== undefined && parseInt(shuffledAnswerIndex) === shuffledIndex) {
                     optionItem.classList.add('selected');
+                    isChecked = true;
                 }
             }
             
             optionItem.innerHTML = `
-                <input type="radio" id="option_${shuffledIndex}" name="answer" value="${shuffledIndex}" ${(savedAnswer !== null && savedAnswer !== undefined && question.shuffledOrder && question.shuffledOrder.indexOf(savedAnswer) === shuffledIndex) ? 'checked' : ''}>
+                <input type="radio" id="option_${shuffledIndex}" name="answer" value="${shuffledIndex}" ${isChecked ? 'checked' : ''}>
                 <label for="option_${shuffledIndex}">${option}</label>
             `;
             
@@ -284,7 +292,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } else if (question.type === 'multiple') {
             const selectedOption = answerContainer.querySelector('input[type="radio"]:checked');
             if (selectedOption) {
-                userAnswers[currentQuestionIndex] = parseInt(selectedOption.value);
+                // 섞인 인덱스를 원본 인덱스로 변환
+                const shuffledIndex = parseInt(selectedOption.value);
+                const originalIndex = question.shuffledToOriginal ? question.shuffledToOriginal[shuffledIndex] : shuffledIndex;
+                userAnswers[currentQuestionIndex] = originalIndex;
+                console.log(`saveCurrentAnswer: 섞인 인덱스 ${shuffledIndex} → 원본 인덱스 ${originalIndex}`);
             }
         }
         
@@ -337,6 +349,23 @@ document.addEventListener('DOMContentLoaded', function() {
     function submitExam() {
         saveCurrentAnswer();
         
+        // 디버깅: 제출 전 답안 확인
+        console.log('=== 시험 제출 전 디버깅 ===');
+        console.log('제출할 답안 (원본 인덱스):', userAnswers);
+        console.log('문제 ID 목록:', questions.map(q => q.id));
+        questions.forEach((q, idx) => {
+            if (q.type === 'multiple') {
+                const userAnswerIdx = userAnswers[idx];
+                const answerText = q.originalOptions && q.originalOptions[userAnswerIdx] ? 
+                    q.originalOptions[userAnswerIdx] : '찾을 수 없음';
+                console.log(`문제 ${idx + 1} (ID: ${q.id}):`);
+                console.log(`  - 제출할 답안 인덱스 (원본): ${userAnswerIdx}`);
+                console.log(`  - 제출할 답안 텍스트: ${answerText}`);
+                console.log(`  - 원본 정답 인덱스: ${q.originalAnswer !== undefined ? q.originalAnswer : q.answer}`);
+                console.log(`  - 원본 보기:`, q.originalOptions || q.options);
+            }
+        });
+        
         // 서버에 답안 제출
         fetch('/api/exam/submit', {
             method: 'POST',
@@ -351,12 +380,33 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // 결과 데이터 세션 저장
-                sessionStorage.setItem('examResults', JSON.stringify({
-                    questions: questions,
+                // 결과 데이터 세션 저장 (원본 보기 정보 포함)
+                const examResultsData = {
+                    questions: questions.map(q => {
+                        // 원본 보기 정보를 명시적으로 포함
+                        if (q.type === 'multiple') {
+                            return {
+                                ...q,
+                                originalOptions: q.originalOptions || q.options,
+                                originalAnswer: q.originalAnswer !== undefined ? q.originalAnswer : q.answer
+                            };
+                        }
+                        return q;
+                    }),
                     userAnswers: userAnswers,
                     results: data.results
-                }));
+                };
+                
+                console.log('=== 저장할 결과 데이터 ===');
+                console.log('문제 데이터:', examResultsData.questions.map(q => ({
+                    id: q.id,
+                    type: q.type,
+                    hasOriginalOptions: !!q.originalOptions,
+                    originalOptions: q.originalOptions,
+                    userAnswer: userAnswers[questions.indexOf(q)]
+                })));
+                
+                sessionStorage.setItem('examResults', JSON.stringify(examResultsData));
                 
                 // 결과 페이지로 이동
                 window.location.href = '/results';
