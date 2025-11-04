@@ -220,6 +220,7 @@ class GeminiService:
                             answer = int(answer)
                         print("DEBUG: JSON 코드 블록에서 파싱 성공")
                         return {
+                            "type": "multiple",  # 문제 타입 추가
                             "question": question_data['question'],
                             "options": question_data['options'],
                             "answer": answer if isinstance(answer, int) else 0
@@ -247,6 +248,7 @@ class GeminiService:
                                     answer = int(answer)
                                 print("DEBUG: 중괄호 매칭으로 JSON 파싱 성공")
                                 return {
+                                    "type": "multiple",  # 문제 타입 추가
                                     "question": question_data['question'],
                                     "options": question_data['options'],
                                     "answer": answer if isinstance(answer, int) else 0
@@ -269,6 +271,7 @@ class GeminiService:
                         # answer가 정수인지 확인
                         if isinstance(question_data['answer'], int):
                             return {
+                                "type": "multiple",  # 문제 타입 추가
                                 "question": question_data['question'],
                                 "options": question_data['options'],
                                 "answer": question_data['answer']
@@ -278,6 +281,7 @@ class GeminiService:
                             try:
                                 answer_idx = int(question_data['answer'])
                                 return {
+                                    "type": "multiple",  # 문제 타입 추가
                                     "question": question_data['question'],
                                     "options": question_data['options'],
                                     "answer": answer_idx
@@ -333,6 +337,7 @@ class GeminiService:
                 answer = int(answer_match.group(1)) if answer_match else 0
                 
                 return {
+                    "type": "multiple",  # 문제 타입 추가
                     "question": question,
                     "options": options[:4],
                     "answer": answer

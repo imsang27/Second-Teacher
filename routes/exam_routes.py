@@ -56,10 +56,11 @@ def get_exam_questions():
         if short_answer_count + multiple_choice_count != total_questions:
             return jsonify({"success": False, "error": "문제 유형의 합이 총 문제 수와 일치하지 않습니다."}), 400
         
-        # 서비스를 통해 문제 불러오기
+        # 서비스를 통해 문제 불러오기 (사용자 ID 전달)
         questions = exam_service.get_random_questions(
             short_answer_count=short_answer_count,
-            multiple_choice_count=multiple_choice_count
+            multiple_choice_count=multiple_choice_count,
+            user_id=user_id
         )
         
         return jsonify({

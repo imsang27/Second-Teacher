@@ -1,5 +1,6 @@
 from repositories.question_repository import QuestionRepository
 from firebase_admin import firestore
+from flask import session
 import random
 
 class ExamService:
@@ -7,14 +8,30 @@ class ExamService:
         self.question_repo = QuestionRepository()
         self.db = firestore.client()
     
-    def get_random_questions(self, short_answer_count, multiple_choice_count):
+    def get_random_questions(self, short_answer_count, multiple_choice_count, user_id=None):
         """
         지정된 유형별 개수에 맞춰 문제를 랜덤하게 가져옴
+        
+        Args:
+            short_answer_count (int): 주관식 문제 개수
+            multiple_choice_count (int): 객관식 문제 개수
+            user_id (str): 사용자 ID. 제공되면 해당 사용자의 문제만 가져옴
         """
-        all_questions = self.question_repo.get_all_questions()
+        # 세션에서 user_id 가져오기 (전달되지 않은 경우)
+        if not user_id:
+            user_id = session.get('user', {}).get('uid')
+        
+        all_questions = self.question_repo.get_all_questions(user_id=user_id)
+        
+        # 디버깅: 문제 데이터 확인
+        print(f"DEBUG: 전체 문제 개수: {len(all_questions)}")
+        for idx, q in enumerate(all_questions[:5]):  # 처음 5개만 출력
+            print(f"DEBUG: 문제 {idx + 1} - ID: {q.get('id')}, Type: {q.get('type')}, Options: {q.get('options')}")
         
         short_questions = [q for q in all_questions if q['type'] == 'short']
         multiple_questions = [q for q in all_questions if q['type'] == 'multiple']
+        
+        print(f"DEBUG: 주관식 문제 개수: {len(short_questions)}, 객관식 문제 개수: {len(multiple_questions)}")
         
         selected_short = random.sample(short_questions, min(short_answer_count, len(short_questions)))
         selected_multiple = random.sample(multiple_questions, min(multiple_choice_count, len(multiple_questions)))
@@ -35,9 +52,14 @@ class ExamService:
     def grade_exam(self, user_id, question_ids, answers):
         """
         시험 답안을 채점
+        
+        Args:
+            user_id (str): 사용자 ID
+            question_ids (list): 문제 ID 리스트
+            answers (list): 사용자 답안 리스트
         """
         results = []
-        questions = self.question_repo.get_questions_by_ids(question_ids)
+        questions = self.question_repo.get_questions_by_ids(question_ids, user_id=user_id)
         
         question_dict = {q['id']: q for q in questions}
         

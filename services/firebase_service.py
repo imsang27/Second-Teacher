@@ -123,7 +123,17 @@ def save_question(lecture_id, question):
     """
     user_id = session.get('user', {}).get('uid')
     if not user_id:
+        print("WARNING: save_question - user_id가 없습니다.")
         return
+    
+    # 디버깅: 저장할 데이터 확인
+    print(f"DEBUG: save_question - 저장할 문제 데이터:")
+    print(f"  - Keys: {list(question.keys())}")
+    print(f"  - Type: {question.get('type')}")
+    print(f"  - Question: {question.get('question', '')[:50]}...")
+    print(f"  - Options 존재: {'options' in question}")
+    print(f"  - Options 값: {question.get('options')}")
+    print(f"  - Answer: {question.get('answer')}")
     
     # 생성 시간 추가
     from firebase_admin import firestore
@@ -132,7 +142,29 @@ def save_question(lecture_id, question):
         'created_at': firestore.SERVER_TIMESTAMP
     }
     
-    db.collection('questions').document('UID').collection(user_id).add(question_with_timestamp)
+    # 저장
+    try:
+        # Firestore의 add()는 문서 참조를 반환
+        doc_ref = db.collection('questions').document('UID').collection(user_id).add(question_with_timestamp)
+        doc_id = doc_ref[1].id  # add()는 (timestamp, document_reference) 튜플 반환
+        
+        print(f"DEBUG: 문제 저장 완료 - 문서 ID: {doc_id}")
+        
+        # 저장된 데이터 확인
+        saved_doc = db.collection('questions').document('UID').collection(user_id).document(doc_id).get()
+        if saved_doc.exists:
+            saved_data = saved_doc.to_dict()
+            print(f"DEBUG: 저장된 데이터 확인:")
+            print(f"  - Keys: {list(saved_data.keys())}")
+            print(f"  - Type: {saved_data.get('type')}")
+            print(f"  - Options 존재: {'options' in saved_data}")
+            print(f"  - Options 값: {saved_data.get('options')}")
+        else:
+            print(f"WARNING: 저장된 문서를 찾을 수 없습니다. ID: {doc_id}")
+    except Exception as e:
+        print(f"ERROR: 문제 저장 중 오류: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
 
 def get_questions():
     """

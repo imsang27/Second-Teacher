@@ -154,10 +154,14 @@ def generate_from_material():
         
         # 생성된 문제를 Firebase에 저장
         try:
+            print(f"DEBUG: 저장할 문제 데이터: {question}")
+            print(f"DEBUG: 문제 타입: {question.get('type')}, 보기 옵션: {question.get('options')}")
             save_question(None, question)
             print("DEBUG: Question saved to Firebase")
         except Exception as e:
             print(f"WARNING: Failed to save question to Firebase: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             # 저장 실패해도 문제는 반환
         
         return jsonify({

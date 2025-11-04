@@ -65,6 +65,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
             if (data.success) {
                 questions = data.questions;
+                console.log('로드된 문제 목록:', questions);
+                
+                // 각 문제의 보기 옵션 확인
+                questions.forEach((q, idx) => {
+                    if (q.type === 'multiple') {
+                        console.log(`문제 ${idx + 1} - 보기 옵션:`, q.options);
+                        if (!q.options || !Array.isArray(q.options)) {
+                            console.error(`문제 ${idx + 1}에 보기가 없습니다!`, q);
+                        }
+                    }
+                });
+                
                 userAnswers = new Array(questions.length).fill(null);
                 
                 // UI 초기화
@@ -146,6 +158,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderCurrentQuestion() {
         const question = questions[currentQuestionIndex];
         
+        // 디버깅: 문제 데이터 확인
+        console.log('현재 문제 데이터:', question);
+        console.log('문제 타입:', question.type);
+        console.log('보기 옵션:', question.options);
+        
         currentQuestionElem.textContent = currentQuestionIndex + 1;
         questionNumber.textContent = currentQuestionIndex + 1;
         questionText.textContent = question.text;
@@ -172,6 +189,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // 선택형 문제 UI 렌더링
     function renderMultipleChoiceUI(question) {
         answerContainer.innerHTML = '';
+        
+        // options가 없거나 배열이 아닌 경우 처리
+        if (!question.options || !Array.isArray(question.options) || question.options.length === 0) {
+            console.error('문제에 보기가 없습니다:', question);
+            answerContainer.innerHTML = `
+                <div style="color: red; padding: 1rem; border: 1px solid red; border-radius: 4px;">
+                    <strong>오류:</strong> 이 문제의 보기 정보가 없습니다. (문제 ID: ${question.id || 'unknown'})
+                </div>
+            `;
+            return;
+        }
         
         question.options.forEach((option, index) => {
             const optionItem = document.createElement('div');
