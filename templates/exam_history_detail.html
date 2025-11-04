@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시험 기록 상세</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='exam_styles.css') }}">
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <a href="/">시험 플랫폼</a>
+        </div>
+        <div class="navbar-right">
+            <a href="/dashboard">대시보드</a>
+            <a href="/logout">로그아웃</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="result-header">
+            <h1>시험 기록 상세</h1>
+            <div class="flex justify-center mb-2">
+                <div class="score-display">
+                    <span id="correctCount">0</span> / <span id="totalCount">0</span>
+                </div>
+            </div>
+            <div class="result-summary">
+                <div class="summary-item">
+                    <div class="summary-value" id="shortAnswerScore">0/0</div>
+                    <div class="summary-label">서술형</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="multipleChoiceScore">0/0</div>
+                    <div class="summary-label">선택형</div>
+                </div>
+            </div>
+            <div style="text-align: center; color: #666; margin-top: 10px;">
+                <span id="examDate">날짜 정보 없음</span>
+            </div>
+        </div>
+        
+        <div id="questionsResults">
+            <!-- 문제별 결과가 동적으로 추가됩니다 -->
+        </div>
+        
+        <div class="flex justify-center gap-2 mt-2">
+            <a href="/exam/history" class="btn">시험 기록 목록</a>
+            <a href="/exam/platform" class="btn">새 시험 보기</a>
+            <a href="/dashboard" class="btn">대시보드로 돌아가기</a>
+        </div>
+    </div>
+    
+    <script>
+        const examId = '{{ exam_id }}';
+    </script>
+    <script src="{{ url_for('static', filename='exam_history_detail.js') }}"></script>
+</body>
+</html>
+

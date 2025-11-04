@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시험 기록</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='exam_styles.css') }}">
+    <style>
+        .exam-list {
+            display: grid;
+            gap: 20px;
+            margin-top: 20px;
+        }
+        .exam-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #007bff;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .exam-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .exam-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .exam-date {
+            color: #666;
+            font-size: 14px;
+        }
+        .exam-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .stat-box {
+            text-align: center;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .no-exams {
+            text-align: center;
+            padding: 60px 20px;
+            color: #666;
+        }
+        .statistics-summary {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .statistics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-item-value {
+            font-size: 28px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        .stat-item-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <a href="/">시험 플랫폼</a>
+        </div>
+        <div class="navbar-right">
+            <a href="/dashboard">대시보드</a>
+            <a href="/logout">로그아웃</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="result-header">
+            <h1>시험 기록</h1>
+            <p style="color: #666; margin-top: 10px;">과거 시험 결과를 확인하세요</p>
+        </div>
+
+        <div class="statistics-summary" id="statisticsSummary">
+            <h3 style="margin-bottom: 15px;">시험 통계</h3>
+            <div class="statistics-grid" id="statisticsGrid">
+                <div class="stat-item">
+                    <div class="stat-item-value" id="totalExams">0</div>
+                    <div class="stat-item-label">총 시험 횟수</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-value" id="averageScore">0%</div>
+                    <div class="stat-item-label">평균 점수</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-item-value" id="bestScore">0%</div>
+                    <div class="stat-item-label">최고 점수</div>
+                </div>
+            </div>
+        </div>
+
+        <div id="examList">
+            <div class="no-exams">
+                <p>로딩 중...</p>
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-2 mt-2">
+            <a href="/exam/platform" class="btn">새 시험 보기</a>
+            <a href="/dashboard" class="btn">대시보드로 돌아가기</a>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='exam_history.js') }}"></script>
+</body>
+</html>
+

@@ -1,10 +1,13 @@
 from repositories.question_repository import QuestionRepository
+from repositories.exam_history_repository import ExamHistoryRepository
 from firebase_admin import firestore
+from datetime import datetime
 import random
 
 class ExamService:
     def __init__(self):
         self.question_repo = QuestionRepository()
+        self.exam_history_repo = ExamHistoryRepository()
         self.db = firestore.client()
     
     def get_random_questions(self, short_answer_count, multiple_choice_count):
@@ -34,12 +37,18 @@ class ExamService:
     
     def grade_exam(self, user_id, question_ids, answers):
         """
-        시험 답안을 채점
+        시험 답안을 채점하고 시험 기록 저장
         """
         results = []
         questions = self.question_repo.get_questions_by_ids(question_ids)
         
         question_dict = {q['id']: q for q in questions}
+        
+        # 통계 변수
+        short_answer_total = 0
+        short_answer_correct = 0
+        multiple_choice_total = 0
+        multiple_choice_correct = 0
         
         for i, (answer, question_id) in enumerate(zip(answers, question_ids)):
             question = question_dict.get(question_id)
@@ -55,6 +64,9 @@ class ExamService:
              # 명확한 채점 결과 생성
             if question['type'] == 'short':
                      is_correct = self._grade_short_answer(answer, question['answer'])
+                     short_answer_total += 1
+                     if is_correct:
+                         short_answer_correct += 1
             elif question['type'] == 'multiple':
             # 정수 변환을 통한 일관된 비교
                  try:
@@ -63,6 +75,9 @@ class ExamService:
                      is_correct = user_int == correct_int
                  except:
                      is_correct = answer == question['answer']
+                 multiple_choice_total += 1
+                 if is_correct:
+                     multiple_choice_correct += 1
             else:
                 is_correct = False
             
@@ -71,6 +86,26 @@ class ExamService:
                  'is_correct': bool(is_correct),
                  'correct_answer': question['answer']
             })
+        
+        # 정답 수 계산
+        correct_count = sum(1 for r in results if r.get('is_correct', False))
+        total_questions = len(question_ids)
+        
+        # 시험 기록 저장
+        exam_data = {
+            'total_questions': total_questions,
+            'correct_count': correct_count,
+            'short_answer_total': short_answer_total,
+            'short_answer_correct': short_answer_correct,
+            'multiple_choice_total': multiple_choice_total,
+            'multiple_choice_correct': multiple_choice_correct,
+            'questions': questions,
+            'user_answers': answers,
+            'results': results,
+            'exam_date': datetime.now()
+        }
+        
+        self.exam_history_repo.save_exam_result(user_id, exam_data)
         
         return results
     

@@ -117,3 +117,94 @@ def submit_exam():
         import traceback
         print(f"시험 제출 중 오류: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@exam_bp.route('/history')
+@auth_required
+def exam_history():
+    """시험 기록 목록 페이지"""
+    return render_template('exam_history.html')
+
+@exam_bp.route('/history/<exam_id>')
+@auth_required
+def exam_history_detail(exam_id):
+    """시험 기록 상세 페이지"""
+    return render_template('exam_history_detail.html', exam_id=exam_id)
+
+@exam_bp.route('/api/exam/history', methods=['GET'])
+@auth_required
+def get_exam_history():
+    """
+    사용자의 시험 기록 목록 조회 API
+    """
+    try:
+        user = session.get('user', {})
+        user_id = user.get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "인증 오류가 발생했습니다."}), 401
+        
+        limit = request.args.get('limit', type=int)
+        exams = exam_service.exam_history_repo.get_user_exam_history(user_id, limit=limit)
+        
+        return jsonify({
+            "success": True,
+            "exams": exams
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"시험 기록 조회 중 오류: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@exam_bp.route('/api/exam/history/<exam_id>', methods=['GET'])
+@auth_required
+def get_exam_history_detail(exam_id):
+    """
+    특정 시험 기록 상세 조회 API
+    """
+    try:
+        user = session.get('user', {})
+        user_id = user.get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "인증 오류가 발생했습니다."}), 401
+        
+        exam = exam_service.exam_history_repo.get_exam_by_id(user_id, exam_id)
+        
+        if not exam:
+            return jsonify({"success": False, "error": "시험 기록을 찾을 수 없습니다."}), 404
+        
+        return jsonify({
+            "success": True,
+            "exam": exam
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"시험 기록 상세 조회 중 오류: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@exam_bp.route('/api/exam/statistics', methods=['GET'])
+@auth_required
+def get_exam_statistics():
+    """
+    사용자의 시험 통계 조회 API
+    """
+    try:
+        user = session.get('user', {})
+        user_id = user.get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "인증 오류가 발생했습니다."}), 401
+        
+        stats = exam_service.exam_history_repo.get_exam_statistics(user_id)
+        
+        return jsonify({
+            "success": True,
+            "statistics": stats
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"시험 통계 조회 중 오류: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500
