@@ -4,8 +4,8 @@ gunicorn
 python-dotenv
 requests
 PyPDF2
-openai-whisper
+openai-whisper>=20231117  # 최신 버전 유지 (TypedStorage 호환성)
 ffmpeg-python
-torch
+torch>=2.0.0  # 최신 PyTorch 버전 사용
 werkzeug
 google-generativeai

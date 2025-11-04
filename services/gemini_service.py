@@ -20,8 +20,15 @@ class GeminiService:
         if not api_key:
             raise ValueError("GEMINI_API_KEY environment variable is not set")
         
+        # 인스턴스 속성으로 저장
+        self.api_key = api_key
+        self.api_url = GEMINI_API_URL
+        
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        # 최신 Gemini 모델 사용 (gemini-pro는 더 이상 사용 불가)
+        # gemini-1.5-flash: 빠르고 효율적인 모델
+        # gemini-1.5-pro: 더 강력한 모델
+        self.model = genai.GenerativeModel('gemini-1.5-flash')
         
     def summarize_pdf(self, pdf_file, prompt_option=1):
         """PDF 파일을 분석하여 요약"""
@@ -137,66 +144,204 @@ class GeminiService:
             text (str): 문제를 생성할 텍스트
             
         Returns:
-            dict: 생성된 문제 정보
+            dict: 생성된 문제 정보 (프론트엔드가 기대하는 형태)
         """
         try:
-            # 프롬프트 구성
-            prompt = f"""
-            다음 텍스트를 바탕으로 교육용 문제를 생성해주세요:
+            # 텍스트 길이 제한 (Gemini 토큰 제한 고려)
+            if len(text) > 10000:
+                text = text[:10000] + "... (텍스트가 너무 길어 일부 생략되었습니다)"
             
-            {text}
+            # 프롬프트 구성 - JSON 형식으로 응답 요청
+            prompt = f"""다음 텍스트를 바탕으로 교육용 객관식 문제 1개를 생성해주세요.
+
+텍스트:
+{text}
+
+다음 JSON 형식으로만 응답해주세요 (다른 설명 없이 JSON만):
+{{
+    "question": "문제 내용",
+    "options": ["보기1", "보기2", "보기3", "보기4"],
+    "answer": 0
+}}
+
+주의사항:
+- answer는 정답의 인덱스입니다 (0, 1, 2, 3 중 하나)
+- options는 정확히 4개의 보기가 있어야 합니다
+- 문제는 텍스트 내용을 바탕으로 의미있고 교육적이어야 합니다
+- JSON 형식만 응답하고 다른 설명은 포함하지 마세요"""
             
-            다음 형식으로 응답해주세요:
-            1. 객관식 문제 1개
-            2. 주관식 문제 1개
+            # REST API를 사용하여 Gemini API 호출 (SDK 대신)
+            response_result = self._send_gemini_request(prompt)
             
-            각 문제는 다음 형식을 따라주세요:
-            객관식:
-            - type: "multiple"
-            - question: "문제 내용"
-            - options: ["보기1", "보기2", "보기3", "보기4"]
-            - answer: 정답 인덱스 (0-3)
+            if not response_result.get('success'):
+                print(f"ERROR: Gemini API 요청 실패: {response_result.get('error', 'Unknown error')}")
+                return None
             
-            주관식:
-            - type: "short"
-            - question: "문제 내용"
-            - answer: "정답"
-            """
+            response_text = response_result.get('summary', '')
             
-            # Gemini API 호출
-            response = self.model.generate_content(prompt)
+            
+            print(f"DEBUG: Gemini 응답 텍스트 길이: {len(response_text)}")
+            print(f"DEBUG: Gemini 응답 미리보기: {response_text[:500]}...")
+            
+            if not response_text or len(response_text.strip()) == 0:
+                print("ERROR: Gemini API 응답이 비어있습니다.")
+                return None
             
             # 응답 파싱 및 구조화
-            questions = self._parse_response(response.text)
+            question = self._parse_response(response_text)
             
-            return questions
+            if not question:
+                print(f"ERROR: 응답 파싱 실패. 원본 응답: {response_text[:1000]}")
+            
+            return question
             
         except Exception as e:
             print(f"Error generating question with Gemini: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
             return None
             
-    def _parse_response(self, response_text: str) -> Dict:
+    def _parse_response(self, response_text: str) -> Optional[Dict]:
         """
         Gemini API의 응답을 파싱하여 구조화된 문제 데이터로 변환
         """
-        # 응답 텍스트를 파싱하여 문제 데이터 추출
-        # 실제 구현에서는 응답 형식에 맞게 파싱 로직 구현 필요
         try:
-            # 임시 구현 - 실제로는 더 정교한 파싱 필요
-            questions = {
-                "multiple": {
-                    "type": "multiple",
-                    "question": "객관식 문제 예시",
-                    "options": ["보기1", "보기2", "보기3", "보기4"],
-                    "answer": 0
-                },
-                "short": {
-                    "type": "short",
-                    "question": "주관식 문제 예시",
-                    "answer": "정답 예시"
-                }
-            }
-            return questions
+            import re
+            
+            # 먼저 JSON 코드 블록에서 추출 시도 (```json ... ``` 형식)
+            json_block_match = re.search(r'```(?:json)?\s*(\{.*?\})\s*```', response_text, re.DOTALL)
+            if json_block_match:
+                json_str = json_block_match.group(1)
+                try:
+                    question_data = json.loads(json_str)
+                    if all(key in question_data for key in ['question', 'options', 'answer']):
+                        answer = question_data['answer']
+                        if isinstance(answer, str):
+                            answer = int(answer)
+                        print("DEBUG: JSON 코드 블록에서 파싱 성공")
+                        return {
+                            "question": question_data['question'],
+                            "options": question_data['options'],
+                            "answer": answer if isinstance(answer, int) else 0
+                        }
+                except (json.JSONDecodeError, ValueError, KeyError) as e:
+                    print(f"DEBUG: JSON 코드 블록 파싱 실패: {str(e)}")
+            
+            # 중괄호를 세어서 완전한 JSON 객체 찾기
+            brace_count = 0
+            start_idx = -1
+            for i, char in enumerate(response_text):
+                if char == '{':
+                    if brace_count == 0:
+                        start_idx = i
+                    brace_count += 1
+                elif char == '}':
+                    brace_count -= 1
+                    if brace_count == 0 and start_idx != -1:
+                        json_str = response_text[start_idx:i+1]
+                        try:
+                            question_data = json.loads(json_str)
+                            if all(key in question_data for key in ['question', 'options', 'answer']):
+                                answer = question_data['answer']
+                                if isinstance(answer, str):
+                                    answer = int(answer)
+                                print("DEBUG: 중괄호 매칭으로 JSON 파싱 성공")
+                                return {
+                                    "question": question_data['question'],
+                                    "options": question_data['options'],
+                                    "answer": answer if isinstance(answer, int) else 0
+                                }
+                        except (json.JSONDecodeError, ValueError, KeyError) as e:
+                            print(f"DEBUG: 중괄호 매칭 JSON 파싱 실패: {str(e)}")
+                        start_idx = -1
+            
+            # JSON 부분만 추출 (코드 블록이나 다른 텍스트 제거)
+            # 중첩된 JSON 객체를 처리하기 위한 더 나은 정규식
+            json_match = re.search(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', response_text, re.DOTALL)
+            
+            if json_match:
+                json_str = json_match.group(0)
+                try:
+                    question_data = json.loads(json_str)
+                    
+                    # 필수 필드 확인
+                    if all(key in question_data for key in ['question', 'options', 'answer']):
+                        # answer가 정수인지 확인
+                        if isinstance(question_data['answer'], int):
+                            return {
+                                "question": question_data['question'],
+                                "options": question_data['options'],
+                                "answer": question_data['answer']
+                            }
+                        # answer가 문자열인 경우 (예: "0", "1" 등)
+                        elif isinstance(question_data['answer'], str):
+                            try:
+                                answer_idx = int(question_data['answer'])
+                                return {
+                                    "question": question_data['question'],
+                                    "options": question_data['options'],
+                                    "answer": answer_idx
+                                }
+                            except ValueError:
+                                pass
+                except json.JSONDecodeError as e:
+                    print(f"JSON 파싱 오류: {str(e)}")
+                    print(f"응답 텍스트: {response_text}")
+            
+            # JSON 파싱 실패 시, 텍스트에서 직접 추출 시도
+            return self._parse_text_response(response_text)
+            
         except Exception as e:
             print(f"Error parsing Gemini response: {str(e)}")
+            import traceback
+            print(traceback.format_exc())
+            return None
+    
+    def _parse_text_response(self, response_text: str) -> Optional[Dict]:
+        """
+        JSON 파싱 실패 시 텍스트에서 정보 추출
+        """
+        try:
+            import re
+            
+            # 문제 추출
+            question_match = re.search(r'문제[:\s]*([^\n]+)', response_text, re.IGNORECASE)
+            if not question_match:
+                question_match = re.search(r'question[:\s]*([^\n]+)', response_text, re.IGNORECASE)
+            
+            # 보기 추출
+            options = []
+            option_patterns = [
+                r'(?:보기|옵션|option)[\s\d]*[:\-]\s*([^\n]+)',
+                r'[①②③④⑤⑥⑦⑧]\s*([^\n]+)',
+                r'[1-4][\.\)]\s*([^\n]+)'
+            ]
+            
+            for pattern in option_patterns:
+                matches = re.findall(pattern, response_text, re.IGNORECASE)
+                if matches:
+                    options = [m.strip() for m in matches[:4]]
+                    break
+            
+            # 정답 추출
+            answer_match = re.search(r'정답[:\s]*([0-9])', response_text, re.IGNORECASE)
+            if not answer_match:
+                answer_match = re.search(r'answer[:\s]*([0-9])', response_text, re.IGNORECASE)
+            
+            if question_match and len(options) >= 4:
+                question = question_match.group(1).strip()
+                answer = int(answer_match.group(1)) if answer_match else 0
+                
+                return {
+                    "question": question,
+                    "options": options[:4],
+                    "answer": answer
+                }
+            
+            # 기본값 반환하지 않고 None 반환 (파싱 실패 시)
+            print(f"ERROR: 텍스트 파싱 실패. 원본 응답: {response_text[:500]}")
+            return None
+            
+        except Exception as e:
+            print(f"Error in text parsing: {str(e)}")
             return None

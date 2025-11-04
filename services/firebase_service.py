@@ -55,7 +55,7 @@ def get_materials(lecture_id, material_type):
             data = doc.to_dict()
             materials.append({
                 'id': doc.id,
-                'title': data.get('title', '제목 없음'),
+                'title': data.get('title', data.get('file_name', '제목 없음')),  # title이 없으면 file_name 사용
                 'description': data.get('summary', '내용 없음'),
                 'type': 'pdf'
             })
@@ -67,8 +67,8 @@ def get_materials(lecture_id, material_type):
             data = doc.to_dict()
             materials.append({
                 'id': doc.id,
-                'title': data.get('title', '제목 없음'),
-                'description': data.get('text', '내용 없음'),
+                'title': data.get('title', data.get('file_name', '제목 없음')),  # title이 없으면 file_name 사용
+                'description': data.get('summary', '내용 없음'),  # summary 필드 사용
                 'type': 'stt'
             })
     
@@ -106,7 +106,7 @@ def get_material_content(material_id, material_type):
             doc = doc_ref.get()
             print(f"STT document exists: {doc.exists}")
             if doc.exists:
-                content = doc.to_dict().get('text', '')
+                content = doc.to_dict().get('summary', '')  # summary 필드 사용
                 print(f"STT content length: {len(content)}")
                 return content
                 
