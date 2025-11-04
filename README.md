@@ -44,6 +44,7 @@ Reference:
 | 🖥️ 프론트엔드 | 문제 UI 제공      | 사용자 인터페이스에서 문제 확인 및 제출 가능            |
 | ⚙️ 백엔드    | 문제 생성 로직 처리   | 텍스트 처리, 문제 템플릿 매칭, 생성 로직 구현          |
 | 💾 DB 연동  | 학습 데이터 저장     | Firestore 기반으로 생성된 문제 및 학습 데이터 저장/조회 |
+| 📚 오답 노트  | 약점 분석 및 보완    | 모의 시험 결과를 분석하여 오답 노트 작성 및 약점 파악 기능 |
 
 # 3. 기술 스택 및 상세 기능 (분류 통합)
 ---
@@ -147,6 +148,10 @@ graph TD
     - [ ] 템플릿 기반 객관식/주관식 문제 생성 - 일부 구현 ([services/question_generator.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/question_generator.py))
 - [x] API 요청 라우팅 구성 - 완료 ([routes/](https://github.com/Second-Teacher/Second-Teacher/tree/main/routes))
 - [x] 로그 및 에러 기록 시스템 설계 - 완료 ([utils/file_utils.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/utils/file_utils.py))
+- [x] 오답 노트 저장 및 약점 분석 기능 구현 - 완료
+    - [x] 오답 노트 저장 로직 구현 - 완료 ([services/exam_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/exam_service.py))
+    - [x] 약점 분석 알고리즘 구현 - 완료 ([services/exam_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/exam_service.py))
+    - [x] 오답 노트 Repository 구현 - 완료 ([repositories/mistake_repository.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/repositories/mistake_repository.py))
 
 ## 8.3. 프론트엔드 개발
 - [x] UI 기본 구조 설계 - 완료 ([templates/](https://github.com/Second-Teacher/Second-Teacher/tree/main/templates))
@@ -156,6 +161,10 @@ graph TD
 - [ ] 문제 결과 출력 페이지 구현
 - [x] 사용자 피드백 표시 (성공/실패, 에러 등) - 완료 ([templates/pdf_summarizer.html](https://github.com/Second-Teacher/Second-Teacher/blob/main/templates/pdf_summarizer.html), [templates/audio_uploader.html](https://github.com/Second-Teacher/Second-Teacher/blob/main/templates/audio_uploader.html))
 - [x] 백엔드 API 연동 테스트 및 UI 응답 처리 - 완료 ([static/pdf_summarizer.js](https://github.com/Second-Teacher/Second-Teacher/blob/main/static/pdf_summarizer.js), [static/audio_uploader.js](https://github.com/Second-Teacher/Second-Teacher/blob/main/static/audio_uploader.js))
+- [x] 오답 노트 페이지 구현 - 완료
+    - [x] 오답 노트 UI 디자인 및 구현 - 완료 ([templates/mistake_notebook.html](https://github.com/Second-Teacher/Second-Teacher/blob/main/templates/mistake_notebook.html))
+    - [x] 약점 분석 데이터 시각화 - 완료 ([static/mistake_notebook.js](https://github.com/Second-Teacher/Second-Teacher/blob/main/static/mistake_notebook.js))
+    - [x] 오답 목록 조회 및 표시 기능 - 완료 ([static/mistake_notebook.js](https://github.com/Second-Teacher/Second-Teacher/blob/main/static/mistake_notebook.js))
 
 ## 8.4. DB 및 API 연동
 - [x] Firebase Firestore 연동 설정 - 완료 ([services/firebase_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/firebase_service.py))
@@ -163,15 +172,18 @@ graph TD
     - [x] 강의 정보 - 완료 ([routes/summary_viewer.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/routes/summary_viewer.py))
     - [x] 문제 및 정답 - 완료 ([services/question_generator.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/question_generator.py))
     - [x] 사용자 풀이 기록 - 완료 ([routes/profile.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/routes/profile.py))
+    - [x] 오답 노트 저장 및 약점 분석 - 완료 ([repositories/mistake_repository.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/repositories/mistake_repository.py), [services/exam_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/exam_service.py))
 - [x] STT API 연동 및 테스트 - 완료 ([services/audio_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/audio_service.py))
 - [x] 문제 및 학습 데이터 저장 기능 구현 - 완료 ([services/firebase_service.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/services/firebase_service.py))
 - [x] 사용자 기록 저장 및 조회 기능 구현 - 완료 ([routes/profile.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/routes/profile.py))
+- [x] 오답 노트 조회 및 약점 분석 기능 구현 - 완료 ([routes/exam_routes.py](https://github.com/Second-Teacher/Second-Teacher/blob/main/routes/exam_routes.py), [templates/mistake_notebook.html](https://github.com/Second-Teacher/Second-Teacher/blob/main/templates/mistake_notebook.html))
 
 ## 8.5. 테스트 및 통합
 - [ ] 음성 파일 → 문제 생성 전체 플로우 테스트 - 진행 중
 - [ ] 오류 및 예외 상황 테스트 - 진행 중
 - [ ] UI/UX 동작 검토 및 피드백 반영 - 진행 중
 - [ ] 데이터 저장/조회 기능 테스트 - 진행 중
+- [ ] 오답 노트 저장 및 약점 분석 기능 테스트 - 진행 중
 
 ## 8.6. 문서 및 발표자료
 - [x] GitHub README 작성 - 완료 ([README.md](https://github.com/Second-Teacher/Second-Teacher/blob/main/README.md))

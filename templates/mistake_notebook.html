@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>오답 노트</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='exam_styles.css') }}">
+    <style>
+        .weakness-analysis {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+        .weakness-section {
+            margin-bottom: 20px;
+        }
+        .weakness-section h3 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .recommendation {
+            padding: 12px;
+            background: white;
+            border-left: 4px solid #007bff;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+        .recommendation.high {
+            border-left-color: #dc3545;
+        }
+        .recommendation.medium {
+            border-left-color: #ffc107;
+        }
+        .mistake-item {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid #dc3545;
+        }
+        .mistake-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .mistake-type {
+            display: inline-block;
+            padding: 4px 12px;
+            background: #dc3545;
+            color: white;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+        .mistake-date {
+            color: #666;
+            font-size: 14px;
+        }
+        .answer-comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .answer-box {
+            padding: 12px;
+            border-radius: 4px;
+        }
+        .user-answer {
+            background: #ffe6e6;
+            border: 1px solid #ff9999;
+        }
+        .correct-answer {
+            background: #e6f7e6;
+            border: 1px solid #99ff99;
+        }
+        .answer-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .no-mistakes {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: #666;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: #007bff;
+            border-bottom-color: #007bff;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div class="navbar-left">
+            <a href="/">시험 플랫폼</a>
+        </div>
+        <div class="navbar-right">
+            <a href="/dashboard">대시보드</a>
+            <a href="/logout">로그아웃</a>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="result-header">
+            <h1>오답 노트</h1>
+            <p style="color: #666; margin-top: 10px;">틀린 문제를 확인하고 약점을 분석하여 보완하세요</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('analysis')">약점 분석</button>
+            <button class="tab" onclick="switchTab('mistakes')">오답 목록</button>
+        </div>
+
+        <!-- 약점 분석 탭 -->
+        <div id="analysis-tab" class="tab-content active">
+            <div class="weakness-analysis">
+                <div class="weakness-section">
+                    <h3>전체 통계</h3>
+                    <div class="stat-item">
+                        <span>총 오답 수</span>
+                        <strong id="total-mistakes">0</strong>
+                    </div>
+                </div>
+
+                <div class="weakness-section">
+                    <h3>문제 유형별 오답률</h3>
+                    <div id="type-stats"></div>
+                </div>
+
+                <div class="weakness-section">
+                    <h3>강의별 오답률</h3>
+                    <div id="lecture-stats"></div>
+                </div>
+
+                <div class="weakness-section">
+                    <h3>학습 추천</h3>
+                    <div id="recommendations"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 오답 목록 탭 -->
+        <div id="mistakes-tab" class="tab-content">
+            <div id="mistakes-list">
+                <div class="no-mistakes">
+                    <p>로딩 중...</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="flex justify-center gap-2 mt-2">
+            <a href="/exam/platform" class="btn">시험 보기</a>
+            <a href="/dashboard" class="btn">대시보드로 돌아가기</a>
+        </div>
+    </div>
+    
+    <script src="{{ url_for('static', filename='mistake_notebook.js') }}"></script>
+</body>
+</html>
+

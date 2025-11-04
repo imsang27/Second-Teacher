@@ -117,3 +117,60 @@ def submit_exam():
         import traceback
         print(f"시험 제출 중 오류: {str(e)}\n{traceback.format_exc()}")
         return jsonify({"success": False, "error": str(e)}), 500
+
+@exam_bp.route('/mistakes')
+@auth_required
+def mistake_notebook():
+    """오답 노트 페이지"""
+    return render_template('mistake_notebook.html')
+
+@exam_bp.route('/api/mistakes', methods=['GET'])
+@auth_required
+def get_mistakes():
+    """
+    사용자의 오답 노트 조회 API
+    """
+    try:
+        user = session.get('user', {})
+        user_id = user.get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "인증 오류가 발생했습니다."}), 401
+        
+        limit = request.args.get('limit', type=int)
+        mistakes = exam_service.mistake_repo.get_user_mistakes(user_id, limit=limit)
+        
+        return jsonify({
+            "success": True,
+            "mistakes": mistakes
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"오답 노트 조회 중 오류: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@exam_bp.route('/api/mistakes/analysis', methods=['GET'])
+@auth_required
+def get_weakness_analysis():
+    """
+    사용자의 약점 분석 데이터 조회 API
+    """
+    try:
+        user = session.get('user', {})
+        user_id = user.get('uid')
+        
+        if not user_id:
+            return jsonify({"success": False, "error": "인증 오류가 발생했습니다."}), 401
+        
+        analysis = exam_service.get_weakness_analysis(user_id)
+        
+        return jsonify({
+            "success": True,
+            "analysis": analysis
+        })
+        
+    except Exception as e:
+        import traceback
+        print(f"약점 분석 중 오류: {str(e)}\n{traceback.format_exc()}")
+        return jsonify({"success": False, "error": str(e)}), 500

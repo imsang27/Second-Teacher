@@ -63,8 +63,27 @@ class QuestionRepository:
                     if question_data.get('type') == 'multiple' and 'options' in question_data:
                         formatted_question['options'] = question_data['options']
                     
+                    formatted_question['lecture_id'] = lecture_id
                     questions.append(formatted_question)
                     found = True
                     break
         
         return questions
+    
+    def get_question_with_lecture(self, question_id):
+        """
+        문제 ID로 문제와 강의 정보를 함께 가져옴
+        """
+        lecture_refs = self.db.collection('lectures').stream()
+        
+        for lecture_ref in lecture_refs:
+            lecture_id = lecture_ref.id
+            question_doc = self.db.collection('lectures').document(lecture_id).collection('questions').document(question_id).get()
+            
+            if question_doc.exists:
+                question_data = question_doc.to_dict()
+                question_data['id'] = question_id
+                question_data['lecture_id'] = lecture_id
+                return question_data
+        
+        return None
