@@ -131,9 +131,18 @@ def generate_from_material():
         print(f"DEBUG: Material content length: {len(material_content)}")
         print(f"DEBUG: Material content preview: {material_content[:200]}...")
         
-        # 문제 생성
+        # 기존 문제 목록 가져오기 (중복 방지 및 다양성 확보)
+        existing_questions = []
         try:
-            question = generate_question(material_content)
+            existing_questions = get_questions()
+            print(f"DEBUG: 기존 문제 {len(existing_questions)}개를 참고하여 새로운 문제 생성")
+        except Exception as e:
+            print(f"WARNING: 기존 문제 목록을 가져오는데 실패했습니다: {str(e)}")
+            # 기존 문제 목록 가져오기 실패해도 문제 생성은 계속 진행
+        
+        # 문제 생성 (기존 문제 목록과 함께 전달)
+        try:
+            question = generate_question(material_content, existing_questions=existing_questions)
             if not question:
                 print("ERROR: generate_question returned None")
                 return jsonify({
@@ -153,11 +162,25 @@ def generate_from_material():
         print(f"DEBUG: Question data: {question}")
         
         # 생성된 문제를 Firebase에 저장
+        save_result = None
         try:
             print(f"DEBUG: 저장할 문제 데이터: {question}")
             print(f"DEBUG: 문제 타입: {question.get('type')}, 보기 옵션: {question.get('options')}")
-            save_question(None, question)
-            print("DEBUG: Question saved to Firebase")
+            save_result = save_question(None, question)
+            
+            if save_result and save_result.get('is_duplicate'):
+                print("WARNING: 중복 문제 - 저장하지 않음")
+                return jsonify({
+                    "success": True,
+                    "question": question,
+                    "message": save_result.get('message', '중복된 문제입니다.'),
+                    "is_duplicate": True,
+                    "warning": "이미 존재하는 문제와 유사한 문제입니다."
+                })
+            elif save_result and save_result.get('success'):
+                print("DEBUG: Question saved to Firebase")
+            else:
+                print(f"WARNING: 문제 저장 실패: {save_result.get('message') if save_result else 'Unknown error'}")
         except Exception as e:
             print(f"WARNING: Failed to save question to Firebase: {str(e)}")
             import traceback
@@ -167,7 +190,8 @@ def generate_from_material():
         return jsonify({
             "success": True,
             "question": question,
-            "message": "문제가 생성되고 저장되었습니다."
+            "message": save_result.get('message', '문제가 생성되었습니다.') if save_result else "문제가 생성되었습니다.",
+            "is_duplicate": save_result.get('is_duplicate', False) if save_result else False
         })
     except Exception as e:
         print(f"ERROR: Unexpected error in generate_from_material: {str(e)}")
@@ -204,14 +228,34 @@ def stt_generate():
         if not result['success']:
             return jsonify({"error": result['error']}), 500
 
-        # 문제 생성 및 저장
-        question = generate_question(result['text'])
-        save_question(None, question)
+        # 기존 문제 목록 가져오기 (중복 방지 및 다양성 확보)
+        existing_questions = []
+        try:
+            from services.firebase_service import get_questions
+            existing_questions = get_questions()
+            print(f"DEBUG: 기존 문제 {len(existing_questions)}개를 참고하여 새로운 문제 생성")
+        except Exception as e:
+            print(f"WARNING: 기존 문제 목록을 가져오는데 실패했습니다: {str(e)}")
+            # 기존 문제 목록 가져오기 실패해도 문제 생성은 계속 진행
 
+        # 문제 생성 및 저장 (기존 문제 목록과 함께 전달)
+        question = generate_question(result['text'], existing_questions=existing_questions)
+        if not question:
+            return jsonify({
+                "success": False,
+                "error": "문제 생성에 실패했습니다."
+            }), 500
+        
+        # 문제 저장 (중복 체크 포함)
+        save_result = save_question(None, question)
+        
         return jsonify({
             "success": True,
             "text": result['text'],
-            "question": question
+            "question": question,
+            "message": save_result.get('message', '문제가 생성되었습니다.') if save_result else "문제가 생성되었습니다.",
+            "is_duplicate": save_result.get('is_duplicate', False) if save_result else False,
+            "warning": "이미 존재하는 문제와 유사한 문제입니다." if save_result and save_result.get('is_duplicate') else None
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500

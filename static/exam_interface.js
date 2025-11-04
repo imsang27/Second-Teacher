@@ -67,13 +67,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 questions = data.questions;
                 console.log('로드된 문제 목록:', questions);
                 
-                // 각 문제의 보기 옵션 확인
+                // 각 문제의 보기 옵션을 랜덤하게 섞기
                 questions.forEach((q, idx) => {
-                    if (q.type === 'multiple') {
-                        console.log(`문제 ${idx + 1} - 보기 옵션:`, q.options);
-                        if (!q.options || !Array.isArray(q.options)) {
-                            console.error(`문제 ${idx + 1}에 보기가 없습니다!`, q);
-                        }
+                    if (q.type === 'multiple' && q.options && Array.isArray(q.options)) {
+                        console.log(`문제 ${idx + 1} - 원본 보기 옵션:`, q.options);
+                        
+                        // 원본 보기 저장
+                        q.originalOptions = [...q.options];
+                        q.originalAnswer = q.answer; // 원본 정답 인덱스 저장
+                        
+                        // 보기 순서를 랜덤하게 섞기 (인덱스와 함께)
+                        const optionsWithIndex = q.options.map((opt, idx) => ({ option: opt, originalIndex: idx }));
+                        shuffleArray(optionsWithIndex);
+                        
+                        // 섞인 보기와 매핑 정보 저장
+                        q.shuffledOptions = optionsWithIndex.map(item => item.option);
+                        q.shuffledOrder = optionsWithIndex.map(item => item.originalIndex); // 섞인 위치 → 원본 인덱스
+                        q.shuffledToOriginal = {}; // 섞인 인덱스 → 원본 인덱스 매핑
+                        optionsWithIndex.forEach((item, shuffledIdx) => {
+                            q.shuffledToOriginal[shuffledIdx] = item.originalIndex;
+                        });
+                        
+                        // 섞인 보기로 교체 (표시용)
+                        q.options = q.shuffledOptions;
+                        
+                        console.log(`문제 ${idx + 1} - 섞인 보기 옵션:`, q.shuffledOptions);
+                        console.log(`문제 ${idx + 1} - 섞인 순서 매핑:`, q.shuffledToOriginal);
+                    } else if (q.type === 'multiple') {
+                        console.error(`문제 ${idx + 1}에 보기가 없습니다!`, q);
                     }
                 });
                 

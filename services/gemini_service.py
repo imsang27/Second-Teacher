@@ -136,12 +136,13 @@ class GeminiService:
                 "error": str(e)
             }
 
-    def generate_question(self, text: str) -> Optional[Dict]:
+    def generate_question(self, text: str, existing_questions: list = None) -> Optional[Dict]:
         """
         Gemini API를 사용하여 주어진 텍스트로부터 문제를 생성
         
         Args:
             text (str): 문제를 생성할 텍스트
+            existing_questions (list): 기존 문제 목록 (중복 방지용)
             
         Returns:
             dict: 생성된 문제 정보 (프론트엔드가 기대하는 형태)
@@ -151,11 +152,37 @@ class GeminiService:
             if len(text) > 10000:
                 text = text[:10000] + "... (텍스트가 너무 길어 일부 생략되었습니다)"
             
+            # 기존 문제 목록 형식화
+            existing_questions_text = ""
+            if existing_questions and len(existing_questions) > 0:
+                existing_questions_text = "\n\n기존에 생성된 문제 목록 (이 문제들과 완전히 다른 문제를 생성해야 합니다):\n"
+                for idx, q in enumerate(existing_questions[:10], 1):  # 최대 10개만 표시
+                    question_text = q.get('question', q.get('text', ''))
+                    options = q.get('options', [])
+                    
+                    existing_questions_text += f"{idx}. 문제: {question_text}\n"
+                    if options:
+                        existing_questions_text += f"   보기: {', '.join(options[:4])}\n"
+                    existing_questions_text += "\n"
+                
+                existing_questions_text += """⚠️ 매우 중요: 위의 기존 문제들과 완전히 다른 새로운 문제를 생성해야 합니다!
+
+다음 조건을 모두 만족해야 합니다:
+1. 문제 내용이 완전히 달라야 합니다 (다른 주제, 다른 접근 방식, 다른 질문 방식)
+2. 보기 내용도 모두 달라야 합니다
+3. 같은 텍스트를 바탕으로 하더라도 다른 관점이나 다른 개념을 다루어야 합니다
+4. 문제의 형식이나 구조가 다르면 더 좋습니다 (예: "다음 중 옳은 것은?" vs "다음 설명 중 틀린 것은?" vs "~의 특징은?")
+
+예를 들어:
+- 기존 문제가 "머신러닝의 정의는?"이면, 새 문제는 "지도 학습의 특징은?" 또는 "비지도 학습과 지도 학습의 차이는?" 같은 다른 문제를 생성해야 합니다.
+- 절대 같은 문제를 단어만 바꿔서 생성하지 마세요!"""
+            
             # 프롬프트 구성 - JSON 형식으로 응답 요청
             prompt = f"""다음 텍스트를 바탕으로 교육용 객관식 문제 1개를 생성해주세요.
 
 텍스트:
 {text}
+{existing_questions_text}
 
 다음 JSON 형식으로만 응답해주세요 (다른 설명 없이 JSON만):
 {{
@@ -168,6 +195,18 @@ class GeminiService:
 - answer는 정답의 인덱스입니다 (0, 1, 2, 3 중 하나)
 - options는 정확히 4개의 보기가 있어야 합니다
 - 문제는 텍스트 내용을 바탕으로 의미있고 교육적이어야 합니다
+
+🔥 다양성 요구사항 (매우 중요):
+- 기존 문제 목록이 제공된 경우, 반드시 그 문제들과 완전히 다른 새로운 문제를 생성해야 합니다
+- 문제의 주제, 접근 방식, 질문 방식, 난이도가 모두 달라야 합니다
+- 보기 내용도 기존 문제의 보기와 완전히 달라야 합니다
+- 같은 개념을 다루더라도 다른 각도나 다른 방식으로 질문해야 합니다
+- 문제 문장의 구조나 형식이 다르면 더 좋습니다
+
+예시:
+- 기존: "머신러닝의 정의는?" → 새 문제: "지도 학습의 특징으로 옳은 것은?" (다른 개념, 다른 질문 방식)
+- 기존: "선형 회귀의 특징은?" → 새 문제: "비선형 회귀와 선형 회귀의 차이는?" (다른 접근 방식)
+
 - JSON 형식만 응답하고 다른 설명은 포함하지 마세요"""
             
             # REST API를 사용하여 Gemini API 호출 (SDK 대신)

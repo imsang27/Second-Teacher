@@ -212,7 +212,25 @@
                 
                 if (data.success) {
                     document.getElementById('result').style.display = 'block';
+                    
+                    // 중복 경고 메시지
+                    let warningHtml = '';
+                    if (data.is_duplicate) {
+                        warningHtml = `
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; color: #856404;">
+                                <strong>⚠️ 경고:</strong> ${data.warning || data.message || '이미 존재하는 문제와 유사한 문제입니다.'} 저장되지 않았습니다.
+                            </div>
+                        `;
+                    } else if (data.message) {
+                        warningHtml = `
+                            <div style="background: #d4edda; border: 1px solid #28a745; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; color: #155724;">
+                                <strong>✓</strong> ${data.message}
+                            </div>
+                        `;
+                    }
+                    
                     document.getElementById('questionContent').innerHTML = `
+                        ${warningHtml}
                         <h3>생성된 문제:</h3>
                         <div class="question-content">
                             <p><strong>문제:</strong> ${data.question.question}</p>
@@ -250,7 +268,25 @@
                 
                 if (data.success) {
                     document.getElementById('result').style.display = 'block';
+                    
+                    // 중복 경고 메시지
+                    let warningHtml = '';
+                    if (data.is_duplicate) {
+                        warningHtml = `
+                            <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; color: #856404;">
+                                <strong>⚠️ 경고:</strong> ${data.warning || data.message || '이미 존재하는 문제와 유사한 문제입니다.'} 저장되지 않았습니다.
+                            </div>
+                        `;
+                    } else if (data.message) {
+                        warningHtml = `
+                            <div style="background: #d4edda; border: 1px solid #28a745; border-radius: 4px; padding: 1rem; margin-bottom: 1rem; color: #155724;">
+                                <strong>✓</strong> ${data.message}
+                            </div>
+                        `;
+                    }
+                    
                     document.getElementById('questionContent').innerHTML = `
+                        ${warningHtml}
                         <h3>변환된 텍스트:</h3>
                         <p>${data.text}</p>
                         <h3>생성된 문제:</h3>
