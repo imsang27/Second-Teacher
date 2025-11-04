@@ -9,6 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 라디오 버튼 선택 시 이벤트
     const totalQuestionsInputs = document.querySelectorAll('input[name="total_questions"]');
     
+    // 총 문제 수 +/- 버튼
+    const totalQuestionsSlider = document.getElementById('totalQuestionsSlider');
+    const sliderValueDisplay = document.getElementById('sliderValueDisplay');
+    const decreaseBtn = document.getElementById('decreaseBtn');
+    const increaseBtn = document.getElementById('increaseBtn');
+    
     // 슬라이더 요소
     const shortAnswerCount = document.getElementById('shortAnswerCount');
     const multipleChoiceCount = document.getElementById('multipleChoiceCount');
@@ -22,9 +28,45 @@ document.addEventListener('DOMContentLoaded', function() {
     const summaryMultiple = document.getElementById('summaryMultiple');
     const validationMessage = document.getElementById('validationMessage');
     
+    // 현재 총 문제 수 가져오기 (슬라이더 우선, 없으면 라디오 버튼)
+    function getCurrentTotalQuestions() {
+        if (totalQuestionsSlider) {
+            return parseInt(totalQuestionsSlider.value);
+        }
+        const checkedRadio = document.querySelector('input[name="total_questions"]:checked');
+        return checkedRadio ? parseInt(checkedRadio.value) : 10;
+    }
+    
+    // 슬라이더 값을 라디오 버튼과 동기화
+    function syncSliderToRadio() {
+        const sliderValue = parseInt(totalQuestionsSlider.value);
+        sliderValueDisplay.textContent = sliderValue;
+        
+        // 라디오 버튼 중에서 가장 가까운 값 찾기
+        const radioValues = [5, 10, 15, 20, 30];
+        const closestRadioValue = radioValues.reduce((prev, curr) => {
+            return Math.abs(curr - sliderValue) < Math.abs(prev - sliderValue) ? curr : prev;
+        });
+        
+        // 가장 가까운 라디오 버튼 체크
+        const closestRadio = document.querySelector(`input[name="total_questions"][value="${closestRadioValue}"]`);
+        if (closestRadio) {
+            closestRadio.checked = true;
+        }
+    }
+    
+    // 라디오 버튼 값을 슬라이더와 동기화
+    function syncRadioToSlider() {
+        const checkedRadio = document.querySelector('input[name="total_questions"]:checked');
+        if (checkedRadio && totalQuestionsSlider) {
+            totalQuestionsSlider.value = checkedRadio.value;
+            sliderValueDisplay.textContent = checkedRadio.value;
+        }
+    }
+    
     // 총 문제 수 변경 처리
     function updateTotalQuestions() {
-        const totalQuestions = parseInt(document.querySelector('input[name="total_questions"]:checked').value);
+        const totalQuestions = getCurrentTotalQuestions();
         
         // 슬라이더 최대값 업데이트
         shortAnswerCount.max = totalQuestions;
@@ -46,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 문제 유형 수 조정 처리
     function updateQuestionTypeCounts() {
-        const totalQuestions = parseInt(document.querySelector('input[name="total_questions"]:checked').value);
+        const totalQuestions = getCurrentTotalQuestions();
         const shortCount = parseInt(shortAnswerCount.value);
         
         // 선택형 문제 수 자동 조정
@@ -64,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 유효성 검증
     function validateQuestionCounts() {
-        const totalQuestions = parseInt(document.querySelector('input[name="total_questions"]:checked').value);
+        const totalQuestions = getCurrentTotalQuestions();
         const shortCount = parseInt(shortAnswerCount.value);
         const multipleCount = parseInt(multipleChoiceCount.value);
         
@@ -90,16 +132,46 @@ document.addEventListener('DOMContentLoaded', function() {
         step1.classList.remove('hidden');
     });
     
+    // +/- 버튼 이벤트 리스너
+    if (decreaseBtn) {
+        decreaseBtn.addEventListener('click', function() {
+            const currentValue = parseInt(totalQuestionsSlider.value);
+            if (currentValue > 1) {
+                totalQuestionsSlider.value = currentValue - 1;
+                syncSliderToRadio();
+                if (!step2.classList.contains('hidden')) {
+                    updateTotalQuestions();
+                }
+            }
+        });
+    }
+    
+    if (increaseBtn) {
+        increaseBtn.addEventListener('click', function() {
+            const currentValue = parseInt(totalQuestionsSlider.value);
+            if (currentValue < 50) {
+                totalQuestionsSlider.value = currentValue + 1;
+                syncSliderToRadio();
+                if (!step2.classList.contains('hidden')) {
+                    updateTotalQuestions();
+                }
+            }
+        });
+    }
+    
+    // 라디오 버튼 이벤트 리스너
     totalQuestionsInputs.forEach(input => {
         input.addEventListener('change', function() {
-            if (step2.classList.contains('hidden')) return;
-            updateTotalQuestions();
+            syncRadioToSlider();
+            if (!step2.classList.contains('hidden')) {
+                updateTotalQuestions();
+            }
         });
     });
     
     shortAnswerCount.addEventListener('input', updateQuestionTypeCounts);
     multipleChoiceCount.addEventListener('input', function() {
-        const totalQuestions = parseInt(document.querySelector('input[name="total_questions"]:checked').value);
+        const totalQuestions = getCurrentTotalQuestions();
         const multipleCount = parseInt(multipleChoiceCount.value);
         
         // 서술형 문제 수 자동 조정
@@ -119,8 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('examConfigForm').addEventListener('submit', function(event) {
         event.preventDefault();
         
-        // 유효성 검증
-        const totalQuestions = parseInt(document.querySelector('input[name="total_questions"]:checked').value);
+        // 유효성 검증 (슬라이더 값 사용)
+        const totalQuestions = getCurrentTotalQuestions();
         const shortCount = parseInt(shortAnswerCount.value);
         const multipleCount = parseInt(multipleChoiceCount.value);
         

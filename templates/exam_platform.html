@@ -26,6 +26,21 @@
             <div id="step1" class="form-step">
                 <div class="form-group">
                     <label>총 문제 수를 선택하세요:</label>
+                    
+                    <!-- +/- 버튼으로 1단위 조절 -->
+                    <div class="form-group" style="margin-top: 1.5rem; margin-bottom: 1.5rem;">
+                        <label style="display: block; margin-bottom: 0.5rem;">
+                            문제 수 조절 (1단위):
+                        </label>
+                        <div style="display: flex; align-items: center; gap: 1rem; justify-content: center;">
+                            <button type="button" id="decreaseBtn" class="btn btn-secondary" style="min-width: 50px; font-size: 1.5rem; padding: 0.5rem;">-</button>
+                            <strong id="sliderValueDisplay" style="font-size: 1.5rem; min-width: 60px; text-align: center;">10</strong>
+                            <button type="button" id="increaseBtn" class="btn btn-secondary" style="min-width: 50px; font-size: 1.5rem; padding: 0.5rem;">+</button>
+                        </div>
+                        <input type="hidden" id="totalQuestionsSlider" value="10">
+                    </div>
+                    
+                    <!-- 기존 라디오 버튼 (유지) -->
                     <div class="radio-group">
                         <div class="radio-option">
                             <input type="radio" id="questions5" name="total_questions" value="5">
